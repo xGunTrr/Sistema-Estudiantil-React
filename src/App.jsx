@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
 import AulaVirtual from './components/AulaVirtual';
-import Login from './components/Login';        
+import Login from './components/Login';
+import Navbar from './components/Navbar';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
