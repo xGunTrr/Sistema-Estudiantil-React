@@ -14,31 +14,41 @@ function CursoDetalle({ cursos = [] }) {
         curso = cursos.find((c) => c.id === cursoId) || null;
     }
 
-    // Estado y datos mock para tareas
+    // Generar datos por curso: cada curso tendrá su propia lista de tareas y foros (18 semanas, 1 actividad por semana)
     const [filter, setFilter] = useState("Todas");
-    const weeksWithTasks = [
-        { week: 1, tasks: [] },
-        {
-            week: 2, tasks: [
-                { id: 'T-201', title: 'Semana 02 - Tema 01: Tarea', status: 'Por entregar', from: '17/11/25 12:00 p.m.', to: '24/11/25 11:59 p.m.' }
-            ]
-        },
-        {
-            week: 3, tasks: [
-                { id: 'T-301', title: 'Semana 03 - Tema 02: Tarea', status: 'Entregada', from: '25/08/25 06:00 a.m.', to: '01/09/25 11:59 p.m.' }
-            ]
-        },
-        {
-            week: 4, tasks: [
-                { id: 'T-401', title: 'Semana 04 - Tema 01: Tarea', status: 'Entregada', from: '01/09/25 06:00 a.m.', to: '08/09/25 11:59 p.m.' }
-            ]
-        },
-        {
-            week: 5, tasks: [
-                { id: 'T-501', title: 'Semana 05 - Tema 02: Tarea', status: 'Vencida', from: '08/09/25 06:00 a.m.', to: '14/09/25 11:59 p.m.' }
-            ]
-        },
-    ];
+
+    const weeksWithTasks = Array.from({ length: 18 }).map((_, i) => {
+        const week = i + 1;
+        const weekStr = String(week).padStart(2, '0');
+
+        // Generar un único task por semana, id único por curso
+        const task = {
+            id: `C${curso.id}-T-${weekStr}`,
+            title: `Semana ${weekStr} - Tema ${weekStr}: Tarea`,
+            status: ['Programada', 'Por entregar', 'Entregada', 'Vencida'][week % 4],
+            from: `Fecha inicio ejemplo`,
+            to: `Fecha fin ejemplo`
+        };
+
+        return { week, tasks: [task] };
+    });
+
+    const weeksWithForums = Array.from({ length: 18 }).map((_, i) => {
+        const week = i + 1;
+        const weekStr = String(week).padStart(2, '0');
+
+        const forum = {
+            id: `C${curso.id}-F-${weekStr}`,
+            title: `Foro de consultas Semana ${weekStr}`,
+            from: `Fecha inicio ejemplo`,
+            to: `Fecha fin ejemplo`
+        };
+
+        return { week, forums: [forum] };
+    });
+
+    const totalTasks = weeksWithTasks.reduce((s, w) => s + w.tasks.length, 0);
+    const totalForums = weeksWithForums.reduce((s, w) => s + w.forums.length, 0);
 
     if (!curso) {
         return (
@@ -107,7 +117,7 @@ function CursoDetalle({ cursos = [] }) {
                         <div>
                             <div className="flex items-start justify-between mb-4">
                                 <div>
-                                    <h4 className="text-2xl font-semibold">Todas las tareas <span className="text-base text-gray-500">(20)</span></h4>
+                                    <h4 className="text-2xl font-semibold">Todas las tareas <span className="text-base text-gray-500">({totalTasks})</span></h4>
                                 </div>
 
                                 <div className="w-56">
@@ -132,8 +142,18 @@ function CursoDetalle({ cursos = [] }) {
 
                     {selectedTab === "foros" && (
                         <div>
-                            <h4 className="font-semibold mb-2">Foros</h4>
-                            <p className="text-[#54657c]">Aquí se mostrarán los hilos de discusión del curso.</p>
+                            <div className="flex items-start justify-between mb-4">
+                                <div>
+                                    <h4 className="text-2xl font-semibold">Todos los foros <span className="text-base text-gray-500">({totalForums})</span></h4>
+                                </div>
+                                {/* no filter for forums as requested */}
+                            </div>
+
+                            <div className="space-y-4">
+                                {weeksWithForums.map((w) => (
+                                    <WeekForums key={w.week} week={w.week} forums={w.forums} />
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -242,6 +262,60 @@ function TaskCard({ task }) {
                 <div className="text-sm text-gray-500 text-right">
                     <div className="">Desde: {task.from}</div>
                     <div className="">Hasta: {task.to}</div>
+                </div>
+
+                <button className="border border-blue-600 text-blue-600 px-4 py-2 rounded hover:bg-blue-50">Ir a la actividad</button>
+            </div>
+        </div>
+    );
+}
+
+function WeekForums({ week, forums }) {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <div className={`bg-white rounded shadow-sm overflow-hidden ${open ? 'border-l-4 border-blue-600' : ''}`}>
+            <button
+                onClick={() => setOpen(!open)}
+                className="w-full flex items-center justify-between px-4 py-3"
+            >
+                <div className="flex items-center">
+                    <div className="w-2 h-10 bg-blue-600 mr-3 hidden md:block" />
+                    <div className="text-base font-medium text-[#233971]">Semana {String(week).padStart(2, '0')}</div>
+                </div>
+                <div className="text-gray-500">{open ? <FaChevronUp /> : <FaChevronDown />}</div>
+            </button>
+
+            {open && (
+                <div className="px-6 py-4 border-t space-y-4">
+                    {forums.length === 0 && (
+                        <div className="text-sm text-gray-600">(No tienes foros)</div>
+                    )}
+
+                    {forums.map((f) => (
+                        <ForumCard key={f.id} forum={f} />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function ForumCard({ forum }) {
+    return (
+        <div className="bg-white rounded p-4 shadow-sm flex items-center justify-between">
+            <div className="flex items-start gap-4">
+                <div className="text-2xl text-gray-400 mt-1">💬</div>
+                <div>
+                    <div className="text-sm text-gray-500 mb-1">No calificada</div>
+                    <div className="font-semibold text-[#183a6e]">{forum.title}</div>
+                </div>
+            </div>
+
+            <div className="flex items-center gap-6">
+                <div className="text-sm text-gray-500 text-right">
+                    <div className="">Desde: {forum.from}</div>
+                    <div className="">Hasta: {forum.to}</div>
                 </div>
 
                 <button className="border border-blue-600 text-blue-600 px-4 py-2 rounded hover:bg-blue-50">Ir a la actividad</button>

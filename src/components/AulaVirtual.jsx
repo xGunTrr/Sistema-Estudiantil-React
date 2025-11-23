@@ -22,7 +22,7 @@ function AulaVirtual() {
           <div className="mb-4">
             <h2 className="text-xl font-semibold text-[#232f50] mb-1">Mis cursos</h2>
             <div className="text-base text-[#232f50] font-medium mb-2">
-              2025 - Ciclo 2 Agosto PREG (001) (Actual)
+              2025 - Ciclo 2 Agosto (Actual)
             </div>
           </div>
           <hr className="mb-8 border-t border-[#d0d5dd]" />
