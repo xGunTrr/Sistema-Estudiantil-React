@@ -1,325 +1,355 @@
-import React, { useState } from "react";
-import { useParams, useLocation, Link } from "react-router-dom";
-import { FaChevronDown, FaChevronUp } from "react-icons/fa";
+﻿// CursoDetalle (main canonical implementation)
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { Link, useParams, useLocation } from 'react-router-dom';
+import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 
-function CursoDetalle({ cursos = [] }) {
-    const { id } = useParams();
-    const location = useLocation();
-    const cursoFromState = location.state && location.state.curso;
-    const [selectedTab, setSelectedTab] = useState("materiales");
-
-    let curso = cursoFromState;
-    if (!curso) {
-        const cursoId = Number(id);
-        curso = cursos.find((c) => c.id === cursoId) || null;
-    }
-
-    // Generar datos por curso: cada curso tendrá su propia lista de tareas y foros (18 semanas, 1 actividad por semana)
-    const [filter, setFilter] = useState("Todas");
-
-    const weeksWithTasks = Array.from({ length: 18 }).map((_, i) => {
-        const week = i + 1;
-        const weekStr = String(week).padStart(2, '0');
-
-        // Generar un único task por semana, id único por curso
-        const task = {
-            id: `C${curso.id}-T-${weekStr}`,
-            title: `Semana ${weekStr} - Tema ${weekStr}: Tarea`,
-            status: ['Programada', 'Por entregar', 'Entregada', 'Vencida'][week % 4],
-            from: `Fecha inicio ejemplo`,
-            to: `Fecha fin ejemplo`
-        };
-
-        return { week, tasks: [task] };
-    });
-
-    const weeksWithForums = Array.from({ length: 18 }).map((_, i) => {
-        const week = i + 1;
-        const weekStr = String(week).padStart(2, '0');
-
-        const forum = {
-            id: `C${curso.id}-F-${weekStr}`,
-            title: `Foro de consultas Semana ${weekStr}`,
-            from: `Fecha inicio ejemplo`,
-            to: `Fecha fin ejemplo`
-        };
-
-        return { week, forums: [forum] };
-    });
-
-    const totalTasks = weeksWithTasks.reduce((s, w) => s + w.tasks.length, 0);
-    const totalForums = weeksWithForums.reduce((s, w) => s + w.forums.length, 0);
-
-    if (!curso) {
-        return (
-            <div className="p-12">
-                <h2 className="text-2xl font-semibold mb-4">Curso no encontrado</h2>
-                <p className="text-sm text-gray-600 mb-6">No se pudo localizar la información del curso.</p>
-                <Link to="/" className="text-blue-600 hover:underline">Volver</Link>
-            </div>
-        );
-    }
-
-    return (
-        <div className="p-12 max-w-4xl">
-            <div className="mb-6">
-                <h2 className="text-3xl font-bold text-[#233971]">{curso.nombre}</h2>
-                <p className="text-sm text-[#54657c]">Código: {curso.id}</p>
-            </div>
-
-            <div className="bg-white rounded-lg shadow p-6 mb-6">
-                <h3 className="text-xl font-semibold mb-2">Descripción</h3>
-                <p className="text-[#54657c]">{curso.descripcion}</p>
-            </div>
-
-            <div className="mb-6">
-                <div className="flex space-x-2">
-                    <button
-                        onClick={() => setSelectedTab("materiales")}
-                        className={`px-4 py-2 rounded-t-lg border-b-2 ${selectedTab === "materiales" ? "bg-white border-blue-600 text-blue-700 font-semibold" : "bg-gray-100 border-transparent text-gray-600"}`}
-                    >
-                        Materiales
-                    </button>
-                    <button
-                        onClick={() => setSelectedTab("tareas")}
-                        className={`px-4 py-2 rounded-t-lg border-b-2 ${selectedTab === "tareas" ? "bg-white border-blue-600 text-blue-700 font-semibold" : "bg-gray-100 border-transparent text-gray-600"}`}
-                    >
-                        Tareas
-                    </button>
-                    <button
-                        onClick={() => setSelectedTab("foros")}
-                        className={`px-4 py-2 rounded-t-lg border-b-2 ${selectedTab === "foros" ? "bg-white border-blue-600 text-blue-700 font-semibold" : "bg-gray-100 border-transparent text-gray-600"}`}
-                    >
-                        Foros
-                    </button>
-                </div>
-
-                <div className="bg-white border p-6 rounded-b-lg shadow">
-                    {selectedTab === "materiales" && (
-                        <div>
-                            <h4 className="font-semibold mb-4">Materiales del curso</h4>
-
-                            <div className="bg-gray-50 p-4 rounded">
-                                <div className="text-sm text-[#233971] font-semibold mb-3">Total de semanas (18)</div>
-
-                                <div className="space-y-3">
-                                    {Array.from({ length: 18 }).map((_, idx) => {
-                                        const weekIndex = idx + 1;
-                                        return (
-                                            <WeekItem key={weekIndex} week={weekIndex} />
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    {selectedTab === "tareas" && (
-                        <div>
-                            <div className="flex items-start justify-between mb-4">
-                                <div>
-                                    <h4 className="text-2xl font-semibold">Todas las tareas <span className="text-base text-gray-500">({totalTasks})</span></h4>
-                                </div>
-
-                                <div className="w-56">
-                                    <label className="text-sm text-gray-600">Filtro por estado</label>
-                                    <select value={filter} onChange={(e) => setFilter(e.target.value)} className="mt-1 block w-full border rounded px-3 py-2">
-                                        <option value="Todas">Todas</option>
-                                        <option value="Programada">Programada</option>
-                                        <option value="Por entregar">Por entregar</option>
-                                        <option value="Entregada">Entregada</option>
-                                        <option value="Vencida">Vencida</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                {weeksWithTasks.map((w) => (
-                                    <WeekTasks key={w.week} week={w.week} tasks={w.tasks.filter(t => filter === 'Todas' ? true : t.status === filter)} />
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {selectedTab === "foros" && (
-                        <div>
-                            <div className="flex items-start justify-between mb-4">
-                                <div>
-                                    <h4 className="text-2xl font-semibold">Todos los foros <span className="text-base text-gray-500">({totalForums})</span></h4>
-                                </div>
-                                {/* no filter for forums as requested */}
-                            </div>
-
-                            <div className="space-y-4">
-                                {weeksWithForums.map((w) => (
-                                    <WeekForums key={w.week} week={w.week} forums={w.forums} />
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            <div className="mt-6">
-                <Link to="/" className="text-blue-600 hover:underline">Volver a Mis cursos</Link>
-            </div>
-        </div>
-    );
+function Modal({ title, children, onClose }){
+	return (
+		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+			<div className="bg-white rounded shadow p-6 w-full max-w-lg">
+				<div className="flex items-center justify-between mb-4">
+					<h3 className="font-semibold">{title}</h3>
+					<button onClick={onClose}>✕</button>
+				</div>
+				<div>{children}</div>
+			</div>
+		</div>
+	);
 }
 
-export default CursoDetalle;
-
-function WeekItem({ week }) {
-    const [open, setOpen] = useState(false);
-
-    const items = [
-        { id: 1, title: `Introducción a la semana ${String(week).padStart(2, '0')}` },
-        { id: 4, title: `Cierre de la semana ${week}` },
-    ];
-
-    return (
-        <div className={`bg-white rounded shadow-sm overflow-hidden ${open ? 'border-l-4 border-blue-600' : ''}`}>
-            <button
-                onClick={() => setOpen(!open)}
-                className="w-full flex items-center justify-between px-4 py-3"
-            >
-                <div className="flex items-center">
-                    <div className="w-2 h-10 bg-blue-600 mr-3 hidden md:block" />
-                    <div className="text-base font-medium text-[#233971]">Semana {String(week).padStart(2, '0')}</div>
-                </div>
-                <div className="text-gray-500">
-                    {open ? <FaChevronUp /> : <FaChevronDown />}
-                </div>
-            </button>
-
-            {open && (
-                <div className="px-6 py-4 border-t">
-                    <ul className="space-y-4">
-                        {items.map((it) => (
-                            <li key={it.id} className="text-[#54657c]">
-                                <div className="py-2">{it.title}</div>
-                                <hr className="border-t border-gray-200" />
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
-        </div>
-    );
+function WeekList({ items, render, title }){
+	const [open, setOpen] = useState(false);
+	return (
+		<div className="bg-white rounded shadow-sm overflow-hidden">
+			<button onClick={() => setOpen(!open)} className="w-full px-4 py-3 flex justify-between items-center">
+				{title}
+				<span>{open ? <FaChevronUp/> : <FaChevronDown/>}</span>
+			</button>
+			{open && <div className="p-4 border-t space-y-3">{items.map(render)}</div>}
+		</div>
+	);
 }
 
-function WeekTasks({ week, tasks }) {
-    const [open, setOpen] = useState(false);
+export default function CursoDetalle({ cursos = [], role }){
+	const { id } = useParams();
+	const location = useLocation();
+	const curso = location.state?.curso || cursos.find(c => c.id === Number(id));
 
-    return (
-        <div className={`bg-white rounded shadow-sm overflow-hidden ${open ? 'border-l-4 border-blue-600' : ''}`}>
-            <button
-                onClick={() => setOpen(!open)}
-                className="w-full flex items-center justify-between px-4 py-3"
-            >
-                <div className="flex items-center">
-                    <div className="w-2 h-10 bg-blue-600 mr-3 hidden md:block" />
-                    <div className="text-base font-medium text-[#233971]">Semana {String(week).padStart(2, '0')}</div>
-                </div>
-                <div className="text-gray-500">{open ? <FaChevronUp /> : <FaChevronDown />}</div>
-            </button>
+	// Call hooks unconditionally; use curso?.id safely
+	const [tab, setTab] = useState('materiales');
+	const [modalOpen, setModalOpen] = useState(false);
+	const [modalType, setModalType] = useState(null);
+	const [form, setForm] = useState({title:'', description:'', from:'', to:'', week:1});
 
-            {open && (
-                <div className="px-6 py-4 border-t space-y-4">
-                    {tasks.length === 0 && (
-                        <div className="text-sm text-gray-600">(No tienes tareas)</div>
-                    )}
+	const courseId = curso?.id || null;
+	const initialTasks = useMemo(() => {
+		if (!courseId) return Array.from({ length: 18 }).map((_, i) => ({ week: i + 1, tasks: [] }));
+		return Array.from({length:18}).map((_,i)=>({ week:i+1, tasks:[{ id:`C${courseId}-T-${i+1}`, title:`Semana ${i+1} - Tarea`, status:['Programada','Por entregar','Entregada','Vencida'][i%4], from:'Inicio', to:'Fin' }]}));
+	},[courseId]);
+	const initialForums = useMemo(() => {
+		if (!courseId) return Array.from({ length: 18 }).map((_, i) => ({ week: i + 1, forums: [] }));
+		return Array.from({length:18}).map((_,i)=>({ week:i+1, forums:[{ id:`C${courseId}-F-${i+1}`, title:`Foro Semana ${i+1}`, from:'Inicio', to:'Fin' }]}));
+	}, [courseId]);
+	const initialMaterials = useMemo(()=>Array.from({length:18}).map((_,i)=>({ week:i+1, materials:[] })),[]);
 
-                    {tasks.map((t) => (
-                        <TaskCard key={t.id} task={t} />
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-}
+	// state will be initialized after computing storageKey
 
-function TaskCard({ task }) {
-    const statusStyles = {
-        'Por entregar': 'bg-yellow-100 text-yellow-800',
-        'Entregada': 'bg-green-100 text-green-800',
-        'Vencida': 'bg-gray-100 text-gray-600',
-        'Programada': 'bg-blue-100 text-blue-800'
-    };
+	// LocalStorage key for this course
+	const storageKey = courseId ? `curso_${courseId}_data` : null;
 
-    return (
-        <div className="bg-white rounded p-4 shadow-sm flex items-center justify-between">
-            <div className="flex items-start gap-4">
-                <div className="text-2xl text-gray-400 mt-1">📄</div>
-                <div>
-                    <div className="text-sm text-gray-500 mb-1">No calificada</div>
-                    <div className="font-semibold text-[#183a6e]">{task.title}</div>
-                </div>
-            </div>
+	// Load from localStorage if present (merge with initial mock data)
+	// initialize states from storage synchronously so no setState in effects needed
+	const parsedStored = (() => {
+		if (!storageKey) return null;
+		try {
+			const raw = localStorage.getItem(storageKey);
+			if (!raw) return null;
+			return JSON.parse(raw);
+		} catch {
+			return null;
+		}
+	})();
+	const initialTasksFromStorage = parsedStored?.tasks || initialTasks;
+	const initialForumsFromStorage = parsedStored?.forums || initialForums;
+	const initialMaterialsFromStorage = parsedStored?.materials || initialMaterials;
+	const [weeksWithTasks,setWeeksWithTasks]=useState(() => initialTasksFromStorage);
+	const [weeksWithForums,setWeeksWithForums]=useState(() => initialForumsFromStorage);
+	const [weeksWithMaterials,setWeeksWithMaterials]=useState(() => initialMaterialsFromStorage);
 
-            <div className="flex items-center gap-6">
-                <div className={`px-3 py-1 rounded-full text-xs font-medium ${statusStyles[task.status] || 'bg-gray-100 text-gray-700'}`}>{task.status}</div>
+		// compute and update task statuses (standalone; not inside create handler)
+		const computeStatusForTask = useCallback((t) => {
+			try {
+				const now = Date.now();
+				const fromTs = t.from ? Date.parse(t.from) : null;
+				const toTs = t.to ? Date.parse(t.to) : null;
+				if (t.submitted) {
+					// If submittedAt exists, we can check whether it was on time
+					if (t.submittedAt) {
+						const sTs = Date.parse(t.submittedAt);
+						if (toTs && sTs > toTs) return 'Vencida';
+					}
+					return 'Entregada';
+				}
+				if (fromTs && now < fromTs) return 'Programada';
+				if (toTs && now > toTs) return 'Vencida';
+				return 'Por entregar';
+			} catch {
+				return t.status || 'Por entregar';
+			}
+		}, []);
 
-                <div className="text-sm text-gray-500 text-right">
-                    <div className="">Desde: {task.from}</div>
-                    <div className="">Hasta: {task.to}</div>
-                </div>
+		useEffect(() => {
+			if (!courseId) return;
+			const updateAllStatuses = () => {
+				setWeeksWithTasks(prev => prev.map(w => ({ ...w, tasks: w.tasks.map(t => ({ ...t, status: computeStatusForTask(t) })) })));
+			};
+			// Update right away
+			updateAllStatuses();
+			// Schedule periodic updates
+			const idInterval = setInterval(updateAllStatuses, 30_000);
+			return () => clearInterval(idInterval);
+		}, [courseId, computeStatusForTask]);
 
-                <button className="border border-blue-600 text-blue-600 px-4 py-2 rounded hover:bg-blue-50">Ir a la actividad</button>
-            </div>
-        </div>
-    );
-}
+		// Listen for storage update events in the same tab and reload local state
+		useEffect(() => {
+			const handler = (e) => {
+				if (!e?.detail?.courseId || e.detail.courseId !== courseId) return;
+				try {
+					const raw = localStorage.getItem(storageKey);
+					if (!raw) return;
+					const parsed = JSON.parse(raw);
+					setWeeksWithTasks(parsed.tasks || initialTasks);
+					setWeeksWithForums(parsed.forums || initialForums);
+					setWeeksWithMaterials(parsed.materials || initialMaterials);
+				} catch (err) { console.warn('Error reloading curso data', err); }
+			};
+			window.addEventListener('curso_data_changed', handler);
+			return () => window.removeEventListener('curso_data_changed', handler);
+		}, [courseId, storageKey, initialTasks, initialForums, initialMaterials]);
 
-function WeekForums({ week, forums }) {
-    const [open, setOpen] = useState(false);
+	// Save any changes to localStorage so Docente changes are visible to Alumno
+	// (no-op) Saving is handled by the persistent effect below; remove explicit call
 
-    return (
-        <div className={`bg-white rounded shadow-sm overflow-hidden ${open ? 'border-l-4 border-blue-600' : ''}`}>
-            <button
-                onClick={() => setOpen(!open)}
-                className="w-full flex items-center justify-between px-4 py-3"
-            >
-                <div className="flex items-center">
-                    <div className="w-2 h-10 bg-blue-600 mr-3 hidden md:block" />
-                    <div className="text-base font-medium text-[#233971]">Semana {String(week).padStart(2, '0')}</div>
-                </div>
-                <div className="text-gray-500">{open ? <FaChevronUp /> : <FaChevronDown />}</div>
-            </button>
+	// We persist changes automatically whenever weeks change
+	useEffect(() => {
+		if (!storageKey) return;
+		const data = { tasks: weeksWithTasks, forums: weeksWithForums, materials: weeksWithMaterials };
+		try {
+			localStorage.setItem(storageKey, JSON.stringify(data));
+		} catch {
+			console.warn('Failed to save curso data to localStorage');
+		}
+	}, [storageKey, weeksWithTasks, weeksWithForums, weeksWithMaterials]);
 
-            {open && (
-                <div className="px-6 py-4 border-t space-y-4">
-                    {forums.length === 0 && (
-                        <div className="text-sm text-gray-600">(No tienes foros)</div>
-                    )}
+	const openModal=(t)=>{setModalType(t); setModalOpen(true); setForm({title:'', description:'', from:'', to:'', week:1});};
+	const closeModal = () => setModalOpen(false);
+    const [flash, setFlash] = useState('');
 
-                    {forums.map((f) => (
-                        <ForumCard key={f.id} forum={f} />
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-}
+	// Delete an item (material/task/forum) for a week
+	const handleDeleteItem = (type, weekNumber, id) => {
+		try {
+			// compute new arrays synchronously so we can persist immediately
+			let newMaterials = weeksWithMaterials;
+			let newTasks = weeksWithTasks;
+			let newForums = weeksWithForums;
+			if (type === 'material') {
+				newMaterials = weeksWithMaterials.map(w => w.week === weekNumber ? { ...w, materials: w.materials.filter(m => m.id !== id) } : w);
+				setWeeksWithMaterials(newMaterials);
+			} else if (type === 'task') {
+				newTasks = weeksWithTasks.map(w => w.week === weekNumber ? { ...w, tasks: w.tasks.filter(t => t.id !== id) } : w);
+				setWeeksWithTasks(newTasks);
+			} else if (type === 'forum') {
+				newForums = weeksWithForums.map(w => w.week === weekNumber ? { ...w, forums: w.forums.filter(f => f.id !== id) } : w);
+				setWeeksWithForums(newForums);
+			}
 
-function ForumCard({ forum }) {
-    return (
-        <div className="bg-white rounded p-4 shadow-sm flex items-center justify-between">
-            <div className="flex items-start gap-4">
-                <div className="text-2xl text-gray-400 mt-1">💬</div>
-                <div>
-                    <div className="text-sm text-gray-500 mb-1">No calificada</div>
-                    <div className="font-semibold text-[#183a6e]">{forum.title}</div>
-                </div>
-            </div>
+			// persist immediately
+			if (storageKey) {
+				try {
+					const data = { tasks: newTasks, forums: newForums, materials: newMaterials };
+					localStorage.setItem(storageKey, JSON.stringify(data));
+				} catch (err) { console.warn('Failed to persist deletion', err); }
+			}
 
-            <div className="flex items-center gap-6">
-                <div className="text-sm text-gray-500 text-right">
-                    <div className="">Desde: {forum.from}</div>
-                    <div className="">Hasta: {forum.to}</div>
-                </div>
+			// quick visual confirmation
+			setFlash('Elemento eliminado');
+			setTimeout(() => setFlash(''), 3000);
 
-                <button className="border border-blue-600 text-blue-600 px-4 py-2 rounded hover:bg-blue-50">Ir a la actividad</button>
-            </div>
-        </div>
-    );
+			// notify other components in the tab
+			try { window.dispatchEvent(new CustomEvent('curso_data_changed', { detail: { courseId } })); } catch (err) { console.warn('dispatch failed', err); }
+		} catch (err) {
+			console.warn('Failed to delete item', err);
+		}
+	};
+	const handleCreate = () => {
+		const wk = Number(form.week);
+		if (!curso) return;
+		if (modalType === 'material') {
+			const item = { id: `C${curso.id}-M-${wk}-${Date.now()}`, title: form.title, description: form.description };
+			setWeeksWithMaterials(prev => prev.map(w => w.week === wk ? { ...w, materials: [...w.materials, item] } : w));
+		} else if (modalType === 'task') {
+			const fromIso = form.from || '';
+			const toIso = form.to || '';
+			const now = Date.now();
+			const fromTs = fromIso ? Date.parse(fromIso) : null;
+			const toTs = toIso ? Date.parse(toIso) : null;
+			const computeInitialStatus = () => {
+				if (fromTs && now < fromTs) return 'Programada';
+				if (toTs && now > toTs) return 'Vencida';
+				return 'Por entregar';
+			};
+
+
+			const item = { id: `C${curso.id}-T-${wk}-${Date.now()}`, title: form.title, from: fromIso, to: toIso, status: computeInitialStatus(), submitted: false, submittedAt: null };
+			setWeeksWithTasks(prev => prev.map(w => w.week === wk ? { ...w, tasks: [...w.tasks, item] } : w));
+		} else if (modalType === 'forum') {
+			const item = { id: `C${curso.id}-F-${wk}-${Date.now()}`, title: form.title, from: form.from, to: form.to };
+			setWeeksWithForums(prev => prev.map(w => w.week === wk ? { ...w, forums: [...w.forums, item] } : w));
+		}
+		closeModal();
+	};
+
+	if(!curso) return (<div className="p-8">Curso no encontrado. <Link to="/">Volver</Link></div>);
+
+	return (
+		<div className="p-8 max-w-4xl">
+		{flash && (<div className="fixed top-6 right-6 bg-green-600 text-white px-4 py-2 rounded shadow">{flash}</div>)}
+			<div className="mb-4"><h2 className="text-2xl font-bold">{curso.nombre}</h2><p className="text-sm text-gray-600">Código: {curso.id}</p></div>
+			<div className="mb-4 flex gap-2"><button onClick={()=>setTab('materiales')} className={`px-3 py-1 ${tab==='materiales'?'bg-white border-blue-600':'bg-gray-100'}`}>Materiales</button><button onClick={()=>setTab('tareas')} className={`px-3 py-1 ${tab==='tareas'?'bg-white border-blue-600':'bg-gray-100'}`}>Tareas</button><button onClick={()=>setTab('foros')} className={`px-3 py-1 ${tab==='foros'?'bg-white border-blue-600':'bg-gray-100'}`}>Foros</button></div>
+
+			<div className="bg-white p-4 rounded shadow">
+				{tab==='materiales' && (
+					<div>
+						<div className="flex justify-between items-center mb-4">
+							<h3 className="font-semibold">Materiales</h3>
+							{role==='Docente'&&<button onClick={()=>openModal('material')} className="bg-blue-600 text-white px-3 py-1 rounded">Añadir</button>}
+						</div>
+						<div className="space-y-2">
+							{weeksWithMaterials.map(w=> (
+								<WeekList key={w.week} title={`Semana ${w.week}`} items={w.materials} render={m=>(
+									<div key={m.id} className="flex justify-between items-center">
+										<div>
+											<div className="font-semibold text-[#183a6e]">{m.title}</div>
+											<div className="text-sm text-gray-500">{m.description}</div>
+										</div>
+										{role === 'Docente' && (
+											<button onClick={()=>handleDeleteItem('material', w.week, m.id)} className="px-2 py-1 bg-red-600 text-white rounded text-sm">Eliminar</button>
+										)}
+									</div>
+								)} />
+							))}
+						</div>
+					</div>
+				)}
+
+								{tab==='tareas' && (
+									<div>
+										<div className="flex justify-between items-center mb-4">
+											<h3 className="font-semibold">Tareas</h3>
+											{role==='Docente'&&<button onClick={()=>openModal('task')} className="bg-blue-600 text-white px-3 py-1 rounded">Añadir</button>}
+										</div>
+										<div className="space-y-2">
+											{weeksWithTasks.map(w=> (
+												<WeekList key={w.week} title={`Semana ${w.week}`} items={w.tasks} render={t=>(
+													<div key={t.id} className="p-3 bg-white rounded shadow-sm flex items-center justify-between">
+														<div>
+															<div className="font-semibold text-[#183a6e]">{t.title}</div>
+															<div className="text-sm text-gray-500">{t.from ? new Date(t.from).toLocaleString() : ''}{t.from && t.to ? ' - ' : ''}{t.to ? new Date(t.to).toLocaleString() : ''}</div>
+														</div>
+														<div className="flex items-center gap-4">
+															<span className={`px-3 py-1 rounded-full text-xs font-medium ${{
+																'Por entregar': 'bg-yellow-100 text-yellow-800',
+																'Entregada': 'bg-green-100 text-green-800',
+																'Vencida': 'bg-gray-100 text-gray-600',
+																'Programada': 'bg-blue-100 text-blue-800'
+															}[t.status] || 'bg-gray-100 text-gray-700'}`}>{t.status}</span>
+															<Link to={`/curso/${curso.id}/actividad/${t.id}`} className="border border-blue-600 text-blue-600 px-3 py-1 rounded hover:bg-blue-50">Ir a la actividad</Link>
+															{role === 'Docente' && (
+																<button onClick={()=>handleDeleteItem('task', w.week, t.id)} className="px-2 py-1 bg-red-600 text-white rounded text-sm">Eliminar</button>
+															)}
+														</div>
+													</div>
+												)} />
+											))}
+										</div>
+									</div>
+								)}
+
+								{tab==='foros' && (
+									<div>
+										<div className="flex justify-between items-center mb-4">
+											<h3 className="font-semibold">Foros</h3>
+											{role==='Docente'&&<button onClick={()=>openModal('forum')} className="bg-blue-600 text-white px-3 py-1 rounded">Añadir</button>}
+										</div>
+										<div className="space-y-2">
+											{weeksWithForums.map(w=> (
+												<WeekList key={w.week} title={`Semana ${w.week}`} items={w.forums} render={f=>(
+													<div key={f.id} className="p-3 bg-white rounded shadow-sm flex items-center justify-between">
+														<div>
+															<div className="font-semibold text-[#183a6e]">{f.title}</div>
+															<div className="text-sm text-gray-500">{f.from} - {f.to}</div>
+														</div>
+														<div className="flex items-center gap-4">
+															<Link to={`/curso/${curso.id}/actividad/${f.id}`} className="border border-blue-600 text-blue-600 px-3 py-1 rounded hover:bg-blue-50">Ir a la actividad</Link>
+															{role === 'Docente' && (
+																<button onClick={()=>handleDeleteItem('forum', w.week, f.id)} className="px-2 py-1 bg-red-600 text-white rounded text-sm">Eliminar</button>
+															)}
+														</div>
+													</div>
+												)} />
+											))}
+										</div>
+									</div>
+								)}
+			</div>
+
+			<div className="mt-4"><Link to="/">Volver a Mis cursos</Link></div>
+
+			{modalOpen && (
+				<Modal title={modalType==='material'?'Crear material':modalType==='task'?'Crear tarea':'Crear foro'} onClose={closeModal}>
+					<div className="space-y-2">
+						<div>
+							<label className="text-sm">Semana</label>
+							<select value={form.week} onChange={(e)=>setForm(prev=>({...prev, week:Number(e.target.value)}))} className="block w-full border rounded px-2 py-1">
+								{Array.from({length:18}).map((_,i)=><option value={i+1} key={i}>Semana {i+1}</option>)}
+							</select>
+						</div>
+						<div>
+							<label className="text-sm">Título</label>
+							<input value={form.title} onChange={e=>setForm(prev=>({...prev, title:e.target.value}))} className="block w-full border rounded px-2 py-1"/>
+						</div>
+						<div>
+							<label className="text-sm">Descripción</label>
+							<textarea value={form.description} onChange={e=>setForm(prev=>({...prev, description:e.target.value}))} className="block w-full border rounded px-2 py-1"/>
+						</div>
+						{modalType === 'task' && (
+							<div>
+								<label className="text-sm">Desde (fecha y hora)</label>
+								<input type="datetime-local" value={form.from} onChange={e=>setForm(prev=>({...prev, from:e.target.value}))} className="block w-full border rounded px-2 py-1"/>
+							</div>
+						)}
+						{modalType === 'task' && (
+							<div>
+								<label className="text-sm">Hasta (fecha y hora)</label>
+								<input type="datetime-local" value={form.to} onChange={e=>setForm(prev=>({...prev, to:e.target.value}))} className="block w-full border rounded px-2 py-1"/>
+							</div>
+						)}
+						{modalType === 'forum' && (
+							<div>
+								<label className="text-sm">Desde</label>
+								<input value={form.from} onChange={e=>setForm(prev=>({...prev, from:e.target.value}))} className="block w-full border rounded px-2 py-1"/>
+							</div>
+						)}
+						{modalType === 'forum' && (
+							<div>
+								<label className="text-sm">Hasta</label>
+								<input value={form.to} onChange={e=>setForm(prev=>({...prev, to:e.target.value}))} className="block w-full border rounded px-2 py-1"/>
+							</div>
+						)}
+						<div className="flex justify-end gap-2 mt-2"><button className="px-3 py-1 border rounded" onClick={closeModal}>Cancelar</button><button className="px-3 py-1 bg-blue-600 text-white rounded" onClick={handleCreate}>Crear</button></div>
+					</div>
+				</Modal>
+			)}
+		</div>
+	);
 }

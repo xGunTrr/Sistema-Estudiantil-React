@@ -3,8 +3,9 @@ import Sidebar from "./Sidebar";
 import Cursos from "./Cursos";
 import { Routes, Route } from "react-router-dom";
 import CursoDetalle from "./CursoDetalle";
+import Actividad from "./Actividad";
 
-function AulaVirtual() {
+function AulaVirtual({ role }) {
   const [selectedTab, setSelectedTab] = useState("cursos");
   const cursos = [
     { id: 1, nombre: "Matemáticas", descripcion: "Curso de álgebra y cálculo" },
@@ -29,7 +30,8 @@ function AulaVirtual() {
 
           <Routes>
             <Route path="/" element={selectedTab === "cursos" ? <Cursos cursos={cursos} /> : null} />
-            <Route path="/curso/:id" element={<CursoDetalle cursos={cursos} />} />
+            <Route path="/curso/:id" element={<CursoDetalle cursos={cursos} role={role} />} />
+            <Route path="/curso/:id/actividad/:aid" element={<Actividad cursos={cursos} role={role} />} />
           </Routes>
         </div>
       </main>
