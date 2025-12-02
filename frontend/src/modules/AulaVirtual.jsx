@@ -1,19 +1,31 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import Cursos from "./Cursos";
 import { Routes, Route } from "react-router-dom";
 import CursoDetalle from "./CursoDetalle";
 import Actividad from "./Actividad";
+import { getCursosUsuario } from "../services/api";
 
-function AulaVirtual({ role }) {
+function AulaVirtual() {
   const [selectedTab, setSelectedTab] = useState("cursos");
-  const cursos = [
-    { id: 1, nombre: "Matemáticas", descripcion: "Curso de álgebra y cálculo" },
-    { id: 2, nombre: "Historia", descripcion: "Historia mundial contemporánea" },
-    { id: 3, nombre: "Física", descripcion: "Introducción a la física clásica" },
-    { id: 4, nombre: "Lenguaje", descripcion: "Comprensión lectora y redacción" },
-    { id: 5, nombre: "Química", descripcion: "Bases de química orgánica" }
-  ];
+  const [cursos, setCursos] = useState([]);
+
+  useEffect(() => {
+    async function fetchCursos() {
+      const cod_usuario = localStorage.getItem("cod_usuario");
+      if (!cod_usuario) return;
+
+      try {
+        const res = await getCursosUsuario(cod_usuario);
+        console.log("CURSOS RECIBIDOS:", res.data);
+        setCursos(res.data);
+      } catch (error) {
+        console.error("Error cargando cursos", error);
+      }
+    }
+
+    fetchCursos();
+  }, []);
 
   return (
     <div className="flex h-screen">
@@ -29,14 +41,13 @@ function AulaVirtual({ role }) {
           <hr className="mb-8 border-t border-[#d0d5dd]" />
 
           <Routes>
-            <Route path="/" element={selectedTab === "cursos" ? <Cursos cursos={cursos} /> : null} />
-            <Route path="/curso/:id" element={<CursoDetalle cursos={cursos} role={role} />} />
-            <Route path="/curso/:id/actividad/:aid" element={<Actividad cursos={cursos} role={role} />} />
+            <Route path="/" element={<Cursos cursos={cursos} />} />
+            <Route path="/curso/:id_curso" element={<CursoDetalle cursos={cursos} />} />
+            <Route path="/curso/:id_curso/actividad/:aid" element={<Actividad cursos={cursos} />} />
           </Routes>
         </div>
       </main>
     </div>
   );
 }
-
 export default AulaVirtual;

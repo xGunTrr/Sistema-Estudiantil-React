@@ -1,4 +1,4 @@
-﻿// CursoDetalle (main canonical implementation)
+// CursoDetalle (main canonical implementation)
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Link, useParams, useLocation } from 'react-router-dom';
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';

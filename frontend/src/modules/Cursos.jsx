@@ -1,12 +1,12 @@
 import { Link } from "react-router-dom";
 
-function Cursos({ cursos }) {
+function Cursos({ cursos = [] }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-10 px-12 py-12">
       {cursos.map((curso) => (
         <Link
-          key={curso.id}
-          to={`/curso/${curso.id}`}
+          key={curso.id_curso}
+          to={`/aulavirtual/curso/${curso.id_curso}`}
           state={{ curso }}
           className="block"
         >
