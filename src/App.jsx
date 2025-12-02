@@ -3,6 +3,9 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-d
 import AulaVirtual from './components/AulaVirtual';
 import Login from './components/Login';
 import Navbar from './components/Navbar';
+import CrearTarea from "./components/CrearTarea";
+import SubirTarea from "./components/SubirTarea";
+
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -25,6 +28,8 @@ function App() {
         <>
           <Navbar userRole={userRole} />
           <Routes>
+            <Route path="/crear-tarea" element={<CrearTarea />} />
+            <Route path="/subir-tarea" element={<SubirTarea />} />
           </Routes>
         </>
       )}
