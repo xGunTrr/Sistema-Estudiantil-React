@@ -1,5 +1,3 @@
-console.log("📌 Cargando rutas de cursos");
-
 import { Router } from "express";
 import { database } from "../database.js";
 const router = Router();

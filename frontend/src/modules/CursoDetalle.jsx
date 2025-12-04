@@ -303,7 +303,7 @@ export default function CursoDetalle({ cursos = [], role }){
 								)}
 			</div>
 
-			<div className="mt-4"><Link to="/">Volver a Mis cursos</Link></div>
+			<div className="mt-4"><Link to="/aulavirtual">Volver a Mis cursos</Link></div>
 
 			{modalOpen && (
 				<Modal title={modalType==='material'?'Crear material':modalType==='task'?'Crear tarea':'Crear foro'} onClose={closeModal}>
